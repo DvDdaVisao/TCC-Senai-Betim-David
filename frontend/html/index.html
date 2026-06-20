@@ -27,17 +27,17 @@
                     Caso você não possua credenciais de acesso, entre em contato com o setor responsável.
                 </p>
 
-                <form class="login-form">
+                <form class="login-form" id="loginForm" method="POST">
                     <div class="input-group">
                         <label for="id">ID</label>
-                        <input type="text" id="id" required autocomplete="off">
+                        <input type="text" id="id" name="id" required autocomplete="off">
                     </div>
                     
                     <div class="input-group">
                         <label for="senha">SENHA</label>
-                        <input type="password" id="senha" required>
+                        <input type="password" id="senha" name="senha" required>
                     </div>
-                    <button type="submit" class="btn-login">LOGIN</button>
+                    <input type="submit" value="LOGIN" class="btn-login">
                 </form>
             </div>
         </div>
@@ -49,6 +49,8 @@
         </div>
 
     </div>
+
+    <script src="../script/script.js"></script>
 
 </body>
 </html>
