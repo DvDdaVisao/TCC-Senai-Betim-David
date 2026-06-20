@@ -14,7 +14,9 @@ if (loginForm) {
     loginForm.addEventListener('submit', function(event) {
         event.preventDefault(); 
         console.log("Formulário de login interceptado com sucesso.");
-        window.location.href = "home.html"; 
+        
+        // CORREÇÃO AQUI: Adicionado a pasta frontend antes do caminho
+        window.location.href = "frontend/html/home.html"; 
     });
 }
 
