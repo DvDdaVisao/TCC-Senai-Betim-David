@@ -9,7 +9,27 @@ let ordemCrescenteEtapa = true;
 // Gerenciamento de dados em memória (evita que sumam ao alternar telas)
 let itensAtivos = []; 
 let itensArquivados = []; 
+let historicoAlteracoes = []; // Armazena os logs de modificações
 let visualizandoArquivados = false; 
+
+// ==========================================
+// FUNÇÃO AUXILIAR: REGISTRO DE LOGS DO HISTÓRICO
+// ==========================================
+function registrarLog(acao, tag, detalhes) {
+    const agora = new Date();
+    const dataFormatada = agora.toLocaleDateString('pt-BR');
+    const horaFormatada = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    const novoLog = {
+        data: `${dataFormatada} às ${horaFormatada}`,
+        acao: acao, // "CADASTRO", "EDIÇÃO", "ARQUIVAMENTO", "DESARQUIVAMENTO"
+        tag: tag.toUpperCase(),
+        detalhes: detalhes
+    };
+    
+    // Adiciona sempre no topo do array para exibir o mais recente primeiro
+    historicoAlteracoes.unshift(novoLog);
+}
 
 // ==========================================
 // LÓGICA DA TELA DE LOGIN (RF1)
@@ -68,6 +88,10 @@ function renderizarTabela() {
 // ==========================================
 // LÓGICA DA TELA HOME & MODAL (RF2 e RF3)
 // ==========================================
+function activarModoEdicao() { 
+    ativarModoEdicao();
+}
+
 function ativarModoEdicao() {
     // Se estiver na tela de arquivados, impede o modo edição
     if (visualizandoArquivados) return;
@@ -184,13 +208,30 @@ if (formEquipamento) {
                 tag, nome, fabricante, descricao, criticidade, etapa,
                 setor: 'Planta de Beneficiamento'
             };
-            // Insere no início do array para simular o comportamento anterior
             itensAtivos.unshift(novoItem);
+
+            // Registra o log de novo cadastro no histórico
+            registrarLog("CADASTRO", tag, `O equipamento "${nome}" foi cadastrado com sucesso.`);
         } else {
             if (linhaSendoEditada) {
                 const idx = linhaSendoEditada.dataset.index;
+                const itemAntigo = itensAtivos[idx];
+                
+                // Mapeia de forma detalhada o que mudou no formulário
+                let alteracoes = [];
+                if (itemAntigo.nome !== nome) alteracoes.push(`Nome ("${itemAntigo.nome}" ➔ "${nome}")`);
+                if (itemAntigo.criticidade !== criticidade) alteracoes.push(`Criticidade (${itemAntigo.criticidade.toUpperCase()} ➔ ${criticidade.toUpperCase()})`);
+                if (itemAntigo.etapa !== etapa) alteracoes.push(`Etapa (${itemAntigo.etapa.toUpperCase()} ➔ ${etapa.toUpperCase()})`);
+                if (itemAntigo.fabricante !== fabricante) alteracoes.push(`Fabricante ("${itemAntigo.fabricante}" ➔ "${fabricante}")`);
+                if (itemAntigo.descricao !== descricao) alteracoes.push(`Descrição Atualizada`);
+
+                const textoDetalhes = alteracoes.length > 0 ? alteracoes.join(', ') : 'Nenhum valor modificado.';
+
+                // Registra o log no histórico antes de atualizar os dados em memória
+                registrarLog("EDIÇÃO", itemAntigo.tag, textoDetalhes);
+
                 itensAtivos[idx] = {
-                    tag: itensAtivos[idx].tag, // mantém a tag original desabilitada
+                    tag: itensAtivos[idx].tag, 
                     nome, fabricante, descricao, criticidade, etapa,
                     setor: itensAtivos[idx].setor
                 };
@@ -203,7 +244,7 @@ if (formEquipamento) {
 }
 
 // ==========================================
-// LÓGICA DE ARQUIVAMENTO
+// LÓGICA DE ARQUIVAMENTO & DESARQUIVAMENTO
 // ==========================================
 function arquivarEquipamento() {
     if (!linhaSendoEditada) return;
@@ -211,6 +252,9 @@ function arquivarEquipamento() {
     
     const itemRemovido = itensAtivos.splice(idx, 1)[0];
     itensArquivados.push(itemRemovido);
+
+    // Registra o arquivamento no histórico
+    registrarLog("ARQUIVAMENTO", itemRemovido.tag, `O equipamento "${itemRemovido.nome}" foi enviado para a lista de arquivados.`);
 
     renderizarTabela();
     fecharModal();
@@ -220,16 +264,16 @@ function desarquivarEquipamento() {
     if (!linhaSendoEditada) return;
     const idx = linhaSendoEditada.dataset.index;
 
-    // Remove da lista de arquivados e devolve para o topo dos ativos
     const itemDesarquivado = itensArquivados.splice(idx, 1)[0];
     itensAtivos.unshift(itemDesarquivado);
 
+    // Registra o desarquivamento no histórico
+    registrarLog("DESARQUIVAMENTO", itemDesarquivado.tag, `O equipamento "${itemDesarquivado.nome}" foi restaurado para os ativos.`);
+
     renderizarTabela();
     fecharModal();
-    console.log("Item desarquivado com sucesso:", itemDesarquivado);
 }
 
-// CORRIGIDO: Agora manipula corretamente o botão de ícone com o Google Fonts
 function verArquivados() {
     visualizandoArquivados = !visualizandoArquivados;
     
@@ -278,10 +322,97 @@ function verArquivados() {
     renderizarTabela();
 }
 
-// NOVA FUNÇÃO: Pronta para você programar a lógica do histórico de alterações
+// ==========================================
+// EXIBIÇÃO DO MODAL DE HISTÓRICO DE ALTERAÇÕES
+// ==========================================
 function verHistorico() {
-    console.log("Botão de histórico de alterações clicado!");
-    // Aqui você pode abrir um modal próprio do histórico ou redirecionar a página.
+    cancelarModoEdicao();
+    const modal = document.getElementById('modalHistorico');
+    const listaContainer = document.getElementById('listaHistorico');
+    
+    if (!modal || !listaContainer) return;
+
+    // Reseta o container para remontar a listagem
+    listaContainer.innerHTML = "";
+
+    if (historicoAlteracoes.length === 0) {
+        listaContainer.innerHTML = `<p style="color: #a0a5ad; font-style: italic; text-align: center; padding: 20px;">Nenhum registro de alteração até o momento.</p>`;
+    } else {
+        historicoAlteracoes.forEach(log => {
+            // Estilização das cores das tags por tipo de operação
+            let corAcao = "#4fa135"; // Verde padrão / Desarquivar
+            if (log.acao === "CADASTRO") corAcao = "#2196f3"; // Azul para cadastros novos
+            if (log.acao === "EDIÇÃO") corAcao = "#ffb300"; // Amarelo
+            if (log.acao === "ARQUIVAMENTO") corAcao = "#d32f2f"; // Vermelho
+
+            const itemLog = document.createElement('div');
+            itemLog.style.backgroundColor = "#1a1c1e";
+            itemLog.style.borderLeft = `4px solid ${corAcao}`;
+            itemLog.style.padding = "12px";
+            itemLog.style.marginBottom = "10px";
+            itemLog.style.borderRadius = "4px";
+
+            itemLog.innerHTML = `
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a0a5ad; margin-bottom: 4px;">
+                    <span><strong>${log.data}</strong></span>
+                    <span style="color: ${corAcao}; font-weight: bold; letter-spacing: 0.5px;">${log.acao}</span>
+                </div>
+                <p style="font-size: 14px; color: #ffffff; margin: 0; line-height: 1.4;">
+                    <strong style="color: #5c913b;">[${log.tag}]</strong> ${log.detalhes}
+                </p>
+            `;
+            listaContainer.appendChild(itemLog);
+        });
+    }
+
+    modal.classList.add('active');
+}
+
+function fecharModalHistorico() {
+    const modal = document.getElementById('modalHistorico');
+    if (modal) modal.classList.remove('active');
+}
+
+// ==========================================
+// FUNÇÃO EXCLUSIVA: DOWNLOAD EM ARQUIVO TEXTO DO HISTÓRICO
+// ==========================================
+function baixarHistorico() {
+    if (historicoAlteracoes.length === 0) {
+        alert("Não há registros no histórico para fazer o download.");
+        return;
+    }
+
+    // Monta o cabeçalho do documento de texto estruturado
+    let conteudoTexto = "==================================================\n";
+    conteudoTexto += "       HISTÓRICO DE ALTERAÇÕES DO SISTEMA         \n";
+    conteudoTexto += "==================================================\n\n";
+
+    // Percorre o array gerando linhas formatadas para o arquivo
+    historicoAlteracoes.forEach((log, index) => {
+        conteudoTexto += `Registro #${historicoAlteracoes.length - index}\n`;
+        conteudoTexto += `Data/Hora: ${log.data}\n`;
+        conteudoTexto += `Operação : ${log.acao}\n`;
+        conteudoTexto += `Tag Item : [${log.tag}]\n`;
+        conteudoTexto += `Detalhes : ${log.detalhes}\n`;
+        conteudoTexto += "--------------------------------------------------\n\n";
+    });
+
+    // Cria o gatilho de download nativo através de um Blob temporário no navegador
+    const blob = new Blob([conteudoTexto], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    
+    const linkTemporario = document.createElement("a");
+    linkTemporario.href = url;
+    
+    // Define o nome do arquivo com a data atual para facilitar o controle
+    const dataArquivo = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+    linkTemporario.download = `historico_alteracoes_${dataArquivo}.txt`;
+    
+    // Força o clique invisível para iniciar o download e limpa a memória temporária
+    document.body.appendChild(linkTemporario);
+    linkTemporario.click();
+    document.body.removeChild(linkTemporario);
+    URL.revokeObjectURL(url);
 }
 
 // ==========================================

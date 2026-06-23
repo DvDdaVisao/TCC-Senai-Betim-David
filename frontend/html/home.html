@@ -112,6 +112,23 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="modalHistorico">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Histórico de Alterações</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn" onclick="baixarHistorico()" style="background-color: #2196f3; padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; border-radius: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">download</span> BAIXAR
+                    </button>
+                    <button class="close-btn" onclick="fecharModalHistorico()" style="margin: 0; padding: 5px 10px;">X</button>
+                </div>
+            </div>
+            
+            <div id="listaHistorico" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                </div>
+        </div>
+    </div>
+
     <script src="../script/script.js"></script>
 </body>
 </html>
