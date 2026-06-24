@@ -1,4 +1,6 @@
-/* Configurações Globais */
+/* ==========================================
+   CONFIGURAÇÕES GLOBAIS E ESTRUTURA
+   ========================================== */
 * {
     margin: 0;
     padding: 0;
@@ -10,6 +12,7 @@ body {
     background-color: #22252a;
     color: #ffffff;
     display: flex;
+    flex-direction: column; /* Permite o fluxo vertical do botão + container */
     justify-content: center;
     align-items: center;
     min-height: 100vh;
@@ -25,7 +28,47 @@ body {
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
-/* Barra de Ferramentas (Search e Botões) */
+/* ALINHAMENTO DO BOTÃO ÍCONE EXTERNO */
+/* ALINHAMENTO DOS BOTÕES SUPERIORES */
+.header-top-externo {
+    width: 100%;
+    max-width: 1200px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px; /* Espaço de 8px entre o botão de histórico e o de arquivados */
+    margin-bottom: 12px;
+}
+
+/* CLASSE GLOBAL PARA OS BOTÕES DE ÍCONE EXTERNOS */
+.btn-externo-icone {
+    background-color: #3a3f47;
+    color: #a0a5ad;
+    border: 1px solid #4f555e;
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s, transform 0.1s;
+}
+
+.btn-externo-icone .material-symbols-outlined {
+    font-size: 22px;
+}
+
+.btn-externo-icone:hover {
+    background-color: #4f555e;
+    color: #ffffff;
+}
+
+.btn-externo-icone:active {
+    transform: scale(0.95);
+}
+
+/* ==========================================
+   BARRA DE FERRAMENTAS (SEARCH E BOTÕES)
+   ========================================== */
 .toolbar {
     display: flex;
     justify-content: space-between;
@@ -63,9 +106,11 @@ body {
 
 .button-group {
     display: flex;
-    gap: 15px;
+    gap: 12px;
+    align-items: center;
 }
 
+/* BOTOES GERAIS */
 .btn {
     padding: 10px 25px;
     border: none;
@@ -74,8 +119,11 @@ body {
     font-size: 14px;
     letter-spacing: 1px;
     cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.1s, color 0.2s, opacity 0.2s;
     color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .btn:active {
@@ -87,7 +135,7 @@ body {
     color: #ffffff;
 }
 
-.btn-editar:hover {
+.btn-editar:hover:not(:disabled) {
     background-color: #386f2f;
 }
 
@@ -96,11 +144,13 @@ body {
     color: #ffffff;
 }
 
-.btn-adicionar:hover {
+.btn-adicionar:hover:not(:disabled) {
     background-color: #41852b;
 }
 
-/* Estilização da Tabela Dinâmica */
+/* ==========================================
+   ESTILIZAÇÃO DA TABELA DINÂMICA
+   ========================================== */
 .table-container {
     min-height: 400px;
     background-color: #1c1c1e;
@@ -112,6 +162,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     text-align: center;
+    table-layout: fixed; 
 }
 
 .custom-table th {
@@ -140,6 +191,11 @@ body {
     border-right: none;
 }
 
+.custom-table tbody tr td:nth-child(4) {
+    max-height: 54px;
+    overflow: hidden; 
+}
+
 .custom-table tbody tr {
     height: 54px;
     transition: background-color 0.2s;
@@ -149,7 +205,41 @@ body {
     background-color: #32363c;
 }
 
-/* Badges Visuais (Estilos para as tags de criticidade e etapa) */
+.thObservacao {
+    width: 30%; 
+}
+
+/* CONTEÚDO SCROLL (DESKTOP) */
+.conteudo-scroll {
+    display: block !important;       
+    max-height: 32px !important;     
+    height: 32px;
+    overflow-y: scroll !important;   
+    overflow-x: hidden !important;   
+    overflow-wrap: break-word;       
+    word-break: break-all;
+    text-align: left;
+    padding-right: 4px;
+}
+
+.conteudo-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+.conteudo-scroll::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+.conteudo-scroll::-webkit-scrollbar-thumb {
+    background: #4fa135;
+    border-radius: 4px;
+}
+.conteudo-scroll::-webkit-scrollbar-thumb:hover {
+    background: #41852b;
+}
+
+/* ==========================================
+   BADGES VISUAIS
+   ========================================== */
 .badge {
     padding: 5px 10px;
     border-radius: 4px;
@@ -167,6 +257,22 @@ body {
 .badge.execucao { background-color: #fbc02d; color: #333; }
 .badge.retorno { background-color: #e64a19; color: white; }
 
+/* Ícone de Ação na Linha */
+.btn-action-arquivar {
+    background: none;
+    border: none;
+    color: #8e8e93;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 5px;
+    border-radius: 4px;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.btn-action-arquivar:hover {
+    color: #ffb300; 
+    background-color: rgba(255, 179, 0, 0.1);
+}
 
 /* ==========================================
    ESTILIZAÇÃO DO MODAL (POP-UP)
@@ -269,6 +375,11 @@ body {
     border-color: #377a32;
 }
 
+.modal-form textarea {
+    resize: none; 
+    height: 100px;
+}
+
 .modal-form input:disabled {
     background-color: #131415;
     color: #757575;
@@ -284,7 +395,14 @@ body {
     flex: 1;
 }
 
+.modal-footer-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
 .btn-salvar {
+    flex: 2;
     background-color: #234221;
     color: white;
     border: 1px solid #377a32;
@@ -293,13 +411,29 @@ body {
     font-weight: bold;
     border-radius: 6px;
     cursor: pointer;
-    margin-top: 10px;
     letter-spacing: 1px;
     transition: background 0.2s;
 }
 
 .btn-salvar:hover {
     background-color: #193018;
+}
+
+.btn-modal-arquivar {
+    flex: 1;
+    background-color: #5c4308;
+    color: #ffffff;
+    border: 1px solid #826211;
+    padding: 14px;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-modal-arquivar:hover {
+    background-color: #423005;
 }
 
 /* ==========================================
@@ -312,6 +446,11 @@ body {
 
     .container {
         padding: 15px;
+    }
+
+    .header-top-externo {
+        padding: 0 5px;
+        margin-bottom: 8px;
     }
 
     .toolbar {
@@ -327,16 +466,17 @@ body {
 
     .button-group {
         width: 100%;
+        flex-direction: column;
+        gap: 8px;
     }
 
     .btn {
-        flex: 1;
+        width: 100%;
         text-align: center;
         justify-content: center;
         padding: 12px;
     }
 
-    /* Transforma a estrutura da tabela em blocos verticais */
     .custom-table, 
     .custom-table thead, 
     .custom-table tbody, 
@@ -346,24 +486,26 @@ body {
         display: block; 
     }
 
-    /* Oculta o header horizontal padrão */
     .custom-table thead tr { 
         position: absolute;
         top: -9999px;
         left: -9999px;
     }
 
-    /* Transforma cada linha inserida em um Card individual */
+    .custom-table tbody tr td:nth-child(4) {
+        max-height: 120px !important;
+        overflow: hidden !important; 
+    }
+
     .custom-table tbody tr { 
         border: 1px solid #3d4246;
         border-radius: 8px;
         margin-bottom: 15px;
         padding: 12px;
         background-color: #242629;
-        height: auto;
+        height: auto; 
     }
     
-    /* Configura as células para exibirem as labels laterais */
     .custom-table td { 
         border: none !important;
         position: relative;
@@ -374,7 +516,18 @@ body {
         align-items: center;
     }
 
-    /* Injeta o nome da coluna de forma responsiva antes do dado */
+    .custom-table td .conteudo-scroll {
+        display: block !important;
+        max-height: 80px !important;      
+        height: 80px !important;
+        overflow-y: scroll !important;     
+        overflow-x: hidden !important;
+        width: 100%;
+        padding-right: 4px;
+        word-break: break-all !important;   
+        overflow-wrap: break-word !important;
+    }
+
     .custom-table td::before { 
         position: absolute;
         left: 12px;
@@ -386,15 +539,14 @@ body {
         font-size: 13px;
     }
 
-    /* Mapeamento de Labels automáticas */
     .custom-table td:nth-of-type(1)::before { content: "TAG:"; }
     .custom-table td:nth-of-type(2)::before { content: "NOME:"; }
     .custom-table td:nth-of-type(3)::before { content: "SETOR:"; }
     .custom-table td:nth-of-type(4)::before { content: "OBSERVAÇÃO:"; }
     .custom-table td:nth-of-type(5)::before { content: "CRITICIDADE:"; }
     .custom-table td:nth-of-type(6)::before { content: "ETAPA:"; }
+    .custom-table td:nth-of-type(7)::before { content: "AÇÕES:"; }
 
-    /* Ajuste para o formulário popup no celular */
     .modal-box {
         width: 95%;
         padding: 20px;
@@ -403,5 +555,9 @@ body {
     .form-row {
         flex-direction: column;
         gap: 0;
+    }
+
+    .modal-footer-buttons {
+        flex-direction: column;
     }
 }

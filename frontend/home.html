@@ -4,9 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tabela de Gerenciamento</title>
-    <link rel="stylesheet" href="../css/homestyle.css">
+    <link rel="stylesheet" href="css/homestyle.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="shortcut icon" href="images/favicon.svg" type="image/x-icon">
 </head>
 <body>
+    <div class="header-top-externo">
+        <button class="btn-externo-icone btn-historico" id="btnVerHistorico" onclick="verHistorico()" title="Histórico de Alterações">
+            <span class="material-symbols-outlined">history</span>
+        </button>
+        <button class="btn-externo-icone btn-arquivados" id="btnVerArquivados" onclick="verArquivados()" title="Visualizar Itens Arquivados">
+            <span class="material-symbols-outlined">archive</span>
+        </button>
+    </div>
 
     <div class="container">
         <div class="toolbar" id="toolbarContainer">
@@ -16,7 +26,7 @@
             </div>
             
             <div class="button-group" id="botoesPadrao">
-                <button class="btn btn-editar" onclick="ativarModoEdicao()">EDITAR</button>
+                <button class="btn btn-editar" onclick="ativarModoEdicao()">EDITAR/ARQUIVAR</button>
                 <button class="btn btn-adicionar" onclick="abrirParaCadastrar()">ADICIONAR</button>
             </div>
 
@@ -33,7 +43,7 @@
                         <th>TAG</th>
                         <th>NOME</th>
                         <th>SETOR</th>
-                        <th>OBSERVAÇÃO</th>
+                        <th class="thObservacao">OBSERVAÇÃO</th>
                         <th id="thCriticidade" onclick="ordenarPorCriticidade()" style="cursor: pointer; user-select: none;">CRITICIDADE <span id="setaCriticidade">↕</span></th>
                         <th id="thEtapa" onclick="ordenarPorEtapa()" style="cursor: pointer; user-select: none;">ETAPA <span id="setaEtapa">↕</span></th>
                     </tr>
@@ -69,7 +79,7 @@
 
                 <div class="form-group">
                     <label>Descrição Técnica</label>
-                    <textarea id="txtDescricao" rows="3" placeholder="Especificações do item..."></textarea>
+                    <textarea id="txtDescricao" rows="3" placeholder="Especificações do item..." maxlength="300"></textarea>
                 </div>
 
                 <div class="form-row">
@@ -94,11 +104,32 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn-salvar">SALVAR ALTERAÇÕES</button>
+                <div class="modal-footer-buttons">
+                    <button type="button" class="btn-modal-arquivar" id="btnArquivarModal" onclick="arquivarEquipamento()">ARQUIVAR</button>
+                    <button type="button" class="btn-modal-arquivar" id="btnDesarquivarModal" onclick="desarquivarEquipamento()" style="display: none; background-color: #448639; border-color: #386f2f;">DESARQUIVAR</button>
+                    <button type="submit" class="btn-salvar">SALVAR ALTERAÇÕES</button>
+                </div>
             </form>
         </div>
     </div>
 
-    <script src="../script/script.js"></script>
+    <div class="modal-overlay" id="modalHistorico">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>Histórico de Alterações</h2>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn" onclick="baixarHistorico()" style="background-color: #2196f3; padding: 6px 12px; font-size: 13px; display: flex; align-items: center; gap: 4px; border-radius: 4px;">
+                        <span class="material-symbols-outlined" style="font-size: 18px;">download</span> BAIXAR
+                    </button>
+                    <button class="close-btn" onclick="fecharModalHistorico()" style="margin: 0; padding: 5px 10px;">X</button>
+                </div>
+            </div>
+            
+            <div id="listaHistorico" style="max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                </div>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
 </body>
 </html>
