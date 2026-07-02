@@ -28,7 +28,7 @@
                 <form class="login-form" id="loginForm" method="POST" action="backend/ProcessarLogin.php">
                     <div class="input-group">
                         <label for="id">Email Corporativo *</label>
-                        <input type="text" id="id" name="email" required autocomplete="off">
+                        <input type="text" id="email" name="email" required autocomplete="off">
                     </div>
                     
                     <div class="input-group">
@@ -38,6 +38,9 @@
                     
                     <button type="submit" class="btn-login">LOGIN</button>
                 </form>
+                <div id="msgerro"> 
+                    <p>ERRO: Dados incorretos. Tente novamente.</p>
+                </div>
             </div>
         </div>
 

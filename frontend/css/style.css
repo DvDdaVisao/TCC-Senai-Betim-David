@@ -130,6 +130,19 @@ body {
     transform: scale(0.98);
 }
 
+#msgerro{
+    display:none
+}
+
+#msgerro > p{
+    display:none
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.6;
+    color: #ff3265;
+    margin-top: 20px;
+}
+
 /* ================= LADO DIREITO (Logo) ================= */
 .right-side {
     flex: 1;

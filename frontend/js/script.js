@@ -27,15 +27,28 @@ function registrarLog(acao, tag, detalhes) {
     historicoAlteracoes.unshift(novoLog);
 }
 
-/* // LÓGICA DA TELA DE LOGIN (RF1)
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-    loginForm.addEventListener('submit', function(event) {
-        event.preventDefault(); 
-        console.log("Formulário de login interceptado com sucesso.");
-        window.location.href = "frontend/home.html";
-    });
-} */
+// LÓGICA DA TELA DE LOGIN (RF1)
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.get('erro') === 'dados_invalidos') {
+
+        const containerErro = document.getElementById('msgerro');
+        if (containerErro) {
+            containerErro.style.display = 'block';
+        }
+
+        const emailInput = document.getElementById('email');
+        const senhaInput = document.getElementById('senha');
+        
+        if (emailInput) {
+            emailInput.style.borderColor = '#ff3265';
+        }
+        if (senhaInput) {
+            senhaInput.style.borderColor = '#ff3265';
+        }
+    }
+});
 
 // FUNÇÃO DE RENDERIZAÇÃO DA TABELA
 function renderizarTabela() {
