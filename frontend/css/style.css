@@ -135,7 +135,6 @@ body {
 }
 
 #msgerro > p{
-    display:none
     font-size: 1rem;
     font-weight: bold;
     line-height: 1.6;

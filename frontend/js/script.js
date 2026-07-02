@@ -50,41 +50,118 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// FUNÇÃO DE RENDERIZAÇÃO DA TABELA
+// FUNÇÃO PARA BUSCAR DADOS DO BANCO
+function carregarDadosDoBanco() {
+    // Ajuste o caminho para apontar para o seu arquivo PHP do backend
+    fetch('../backend/buscar_itens.php')
+        .then(response => response.json())
+        .then(dados => {
+            if (dados.sucesso) {
+                // Preenche as variáveis globais que você já possui no código
+                itensAtivos = dados.ativos;
+                itensArquivados = dados.arquivados;
+                
+                // Agora que os dados chegaram, renderiza a tabela na tela
+                renderizarTabela();
+            } else {
+                console.error("Erro ao buscar dados:", dados.erro);
+                alert("Erro ao carregar os dados do servidor.");
+            }
+        })
+        .catch(erro => {
+            console.error("Erro na requisição:", erro);
+        });
+}
+
+function arquivarItemDoSistema(idDoItem) {
+    if (!confirm("Tem certeza que deseja arquivar este item? Ele sairá da lista de ativos.")) return;
+
+    fetch('../backend/arquivar_item.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ id: idDoItem })
+    })
+    .then(response => response.json())
+    .then(resultado => {
+        if (resultado.sucesso) {
+            alert("Item arquivado com sucesso!");
+            
+            // Recarrega a tabela trazendo os dados atualizados das duas tabelas
+            carregarDadosDoBanco(); 
+            
+            // Se tiver um modal aberto, feche-o aqui (ex: fecharModal();)
+        } else {
+            alert("Erro ao arquivar: " + resultado.erro);
+        }
+    })
+    .catch(erro => console.error("Erro na requisição:", erro));
+}
+
+// Chame essa função assim que a página carregar
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDadosDoBanco();
+});
+
+// FUNÇÃO DE RENDERIZAÇÃO DA TABELA (VERSÃO CORRIGIDA CONTRA ERRO DE NÚMERO)
 function renderizarTabela() {
     const tabelaBody = document.querySelector('.custom-table tbody');
-    if (!tabelaBody) return;
+    
+    if (!tabelaBody) {
+        console.error("ERRO: Não foi possível encontrar '.custom-table tbody' no seu HTML!");
+        return;
+    }
+    
     tabelaBody.innerHTML = "";
     const listaAtual = visualizandoArquivados ? itensArquivados : itensAtivos;
 
-    //Mensagem de Nenhum Item Encontrado
+    // Mensagem de Nenhum Item Encontrado
     if (listaAtual.length === 0) {
         tabelaBody.innerHTML = `<tr><td colspan="6" style="color: #a0a5ad; font-style: italic; padding: 30px;">Nenhum item encontrado.</td></tr>`;
         return;
     }
 
-    //Criação de Linhas
+    // Criação de Linhas
     listaAtual.forEach((item, index) => {
         const novaLinha = document.createElement('tr');
         novaLinha.style.cursor = "pointer";
         novaLinha.dataset.index = index;
+        novaLinha.dataset.id = item.id; // Guarda o ID numérico do banco na linha
 
-        // Adiciona o evento de clique para abrir o modal de edição/visualização
+        // Força a tag a virar uma String estável para evitar erros de tipo
+        const tagGarantida = item.tag ? String(item.tag) : "";
+
+        // Adiciona o evento de clique protegendo contra erros
         novaLinha.addEventListener('click', function() {
-            abrirRF3(item.tag, this);
+            try {
+                if (typeof abrirRF3 === "function") {
+                    abrirRF3(tagGarantida, this);
+                } else {
+                    console.warn("A função abrirRF3 ainda não foi implementada ou importada.");
+                }
+            } catch (err) {
+                console.error("Erro ao tentar abrir o modal (abrirRF3):", err);
+            }
         });
 
+        // Tratamos as strings das badges de forma segura
+        const criticidadeClasse = item.criticidade ? String(item.criticidade).toLowerCase() : 'baixa';
+        const criticidadeTexto = item.criticidade ? String(item.criticidade).toUpperCase() : 'BAIXA';
+        const etapaClasse = item.etapa ? String(item.etapa).toLowerCase() : 'analise';
+        const etapaTexto = item.etapa ? String(item.etapa).toUpperCase() : 'ANÁLISE';
+
         novaLinha.innerHTML = `
-            <td>${item.tag.toUpperCase()}</td>
-            <td>${item.nome}</td>
-            <td>${item.setor}</td>
+            <td>${tagGarantida.toUpperCase()}</td>
+            <td>${item.nome || ''}</td>
+            <td>${item.setor || ''}</td>
             <td>
                 <div class="conteudo-scroll">
                     ${item.descricao ? item.descricao : 'Sem observações.'}
                 </div>
             </td>
-            <td><span class="badge ${item.criticidade}">${item.criticidade.toUpperCase()}</span></td>
-            <td><span class="badge ${item.etapa}">${item.etapa.toUpperCase()}</span></td>
+            <td><span class="badge ${criticidadeClasse}">${criticidadeTexto}</span></td>
+            <td><span class="badge ${etapaClasse}">${etapaTexto}</span></td>
         `;
         tabelaBody.appendChild(novaLinha);
     });
