@@ -17,9 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($cargo) {
         if ($cargo === 'Gestor') {
-            header("Location: ../frontend/home.html");
+            header("Location: ../frontend/dashboard.html");
         } elseif ($cargo === 'Colaborador') {
-            header("Location: ../frontend/homeColaborador.html");
+            header("Location: ../frontend/dashboard_colaborador.html");
         } elseif ($cargo === 'Admin') {
             header("Location: ../frontend/painel_admin.php");
         }

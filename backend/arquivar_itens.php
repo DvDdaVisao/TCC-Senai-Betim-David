@@ -30,8 +30,8 @@ try {
     }
 
     // 2. Insere na tabela 'itens_arquivados' respeitando as colunas exatas do seu banco (incluindo 'crticidade')
-    $sqlInserir = "INSERT INTO itens_arquivados (ID_Itens, nome, setor, observacao, crticidade, etapa) 
-                   VALUES (:id_itens, :nome, :setor, :observacao, :crticidade, :etapa)";
+    $sqlInserir = "INSERT INTO itens_arquivados (ID_Itens, nome, setor, observacao, criticidade, etapa) 
+                   VALUES (:id_itens, :nome, :setor, :observacao, :criticidade, :etapa)";
     
     $stmtInserir = $pdo->prepare($sqlInserir);
     $stmtInserir->execute([
@@ -39,7 +39,7 @@ try {
         ':nome'       => $item['nome'],
         ':setor'      => $item['setor'],
         ':observacao' => $item['observacao'],
-        ':crticidade' => $item['criticidade'], // mapeia a criticidade ativa na coluna 'crticidade' dos arquivados
+        ':criticidade' => $item['criticidade'], // mapeia a criticidade ativa na coluna 'crticidade' dos arquivados
         ':etapa'      => $item['etapa']
     ]);
 
