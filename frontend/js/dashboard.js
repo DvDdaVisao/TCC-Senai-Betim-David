@@ -1,8 +1,10 @@
+// ESTADO GLOBAL DO SISTEMA
 let modoEdicaoAtivo = false;
 let linhaSendoEditada = null;
 let ordemCrescenteCriticidade = true;
 let ordemCrescenteEtapa = true;
 let visualizandoArquivados = false;
+let termoPesquisa = "";
 
 let paginaAtualTabela = 1;
 const itensPorPaginaTabela = 15;
@@ -13,49 +15,36 @@ let itensAtivos = [];
 let itensArquivados = [];
 let historicoAlteracoes = [];
 
+const CAMPOS_FORM = ['inputNome', 'inputFabricante', 'txtDescricao', 'selectCriticidade', 'selectEtapa'];
+const OBTEM_ELEMENTO = id => document.getElementById(id);
+
 // INICIALIZAÇÃO DO SISTEMA
 document.addEventListener('DOMContentLoaded', async () => {
     await carregarDadosDoBanco();
     configurarFiltroPesquisa();
-    
-    const formEquipamento = document.getElementById('formEquipamento');
-    if (formEquipamento) {
-        formEquipamento.addEventListener('submit', salvarFormulario);
-    }
+    OBTEM_ELEMENTO('formEquipamento')?.addEventListener('submit', salvarFormulario);
 });
 
 // HISTÓRICO & LOGS
 async function registrarLog(acao, tag, detalhes) {
     const agora = new Date();
-    
-    // Forçando o fuso horário de Brasília na criação do Log local
-    const dataFormatada = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const horaFormatada = agora.toLocaleTimeString('pt-BR', { 
-        timeZone: 'America/Sao_Paulo', 
-        hour: '2-digit', 
-        minute: '2-digit' 
-    });
-    
+    const fuso = { timeZone: 'America/Sao_Paulo' };
+    const dataFormatada = agora.toLocaleDateString('pt-BR', fuso);
+    const horaFormatada = agora.toLocaleTimeString('pt-BR', { ...fuso, hour: '2-digit', minute: '2-digit' });
     const tagFormatada = String(tag).toUpperCase();
 
-    // 1. Salva na memória local para exibição imediata na tela
     historicoAlteracoes.unshift({
         data: `${dataFormatada} às ${horaFormatada}`,
-        acao: acao,
+        acao,
         tag: tagFormatada,
-        detalhes: detalhes
+        detalhes
     });
 
-    // 2. Envia para o banco de dados via fetch API
     try {
         await fetch('../backend/salvar_historico.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                acao: acao,
-                tag: tagFormatada,
-                detalhes: detalhes
-            })
+            body: JSON.stringify({ acao, tag: tagFormatada, detalhes })
         });
     } catch (erro) {
         console.error('Falha ao sincronizar o log com o banco de dados:', erro);
@@ -64,12 +53,17 @@ async function registrarLog(acao, tag, detalhes) {
 
 // RENDERIZAÇÃO DA TABELA
 async function carregarDadosDoBanco() {
-    const dados = await API.buscarItens(); 
-    if (dados) {
-        itensAtivos = dados.ativos || [];
-        itensArquivados = dados.arquivados || [];
-        historicoAlteracoes = dados.historico || []; 
-        renderizarTabela();
+    try {
+        const dados = await API.buscarItens(); 
+        if (dados) {
+            itensAtivos = dados.ativos || [];
+            itensArquivados = dados.arquivados || [];
+            historicoAlteracoes = dados.historico || []; 
+            renderizarTabela();
+        }
+    } catch (erro) {
+        console.error('Erro ao processar os dados da API:', erro);
+        alert('O servidor respondeu com um formato inválido. Verifique o arquivo PHP no backend.');
     }
 }
 
@@ -78,37 +72,35 @@ function renderizarTabela() {
     if (!tabelaBody) return;
     
     tabelaBody.innerHTML = "";
-    const listaAtual = visualizandoArquivados ? itensArquivados : itensAtivos;
+    const listaBase = visualizandoArquivados ? itensArquivados : itensAtivos;
 
-    if (listaAtual.length === 0) {
+    const listaFiltrada = listaBase.filter(item => {
+        const tagTexto = item.tag ? String(item.tag).toLowerCase() : '';
+        const nomeTexto = item.nome ? String(item.nome).toLowerCase() : '';
+        return tagTexto.includes(termoPesquisa) || nomeTexto.includes(termoPesquisa);
+    });
+
+    if (listaFiltrada.length === 0) {
         tabelaBody.innerHTML = `<tr><td colspan="6" style="color: #a0a5ad; font-style: italic; padding: 30px; text-align: center;">Nenhum item encontrado.</td></tr>`;
         atualizarControlesPaginacao('Tabela', 1, 1);
         return;
     }
 
-    // Lógica de Paginação da Tabela
-    const totalPaginas = Math.ceil(listaAtual.length / itensPorPaginaTabela);
-    if (paginaAtualTabela > totalPaginas) paginaAtualTabela = totalPaginas;
-    if (paginaAtualTabela < 1) paginaAtualTabela = 1;
+    const totalPaginas = Math.ceil(listaFiltrada.length / itensPorPaginaTabela);
+    paginaAtualTabela = Math.max(1, Math.min(paginaAtualTabela, totalPaginas));
 
     const indiceInicio = (paginaAtualTabela - 1) * itensPorPaginaTabela;
-    const indiceFim = indiceInicio + itensPorPaginaTabela;
-    const itensPaginados = listaAtual.slice(indiceInicio, indiceFim);
+    const itensPaginados = listaFiltrada.slice(indiceInicio, indiceInicio + itensPorPaginaTabela);
 
-    itensPaginados.forEach((item, index) => {
-        // O index real na lista total precisa considerar a página
-        const indexReal = indiceInicio + index; 
-        
+    itensPaginados.forEach(item => {
+        const indexReal = listaBase.findIndex(i => i.tag === item.tag); 
         const novaLinha = document.createElement('tr');
         novaLinha.style.cursor = "pointer";
-        novaLinha.dataset.index = indexReal;
+        novaLinha.dataset.index = indexReal; 
         novaLinha.dataset.id = item.id;
 
         const tagGarantida = item.tag ? String(item.tag) : "";
-
-        novaLinha.addEventListener('click', function() {
-            abrirRF3(tagGarantida, this);
-        });
+        novaLinha.addEventListener('click', () => abrirRF3(tagGarantida, novaLinha));
 
         const criticidade = (item.criticidade || 'baixa').toLowerCase();
         const etapa = (item.etapa || 'analise').toLowerCase();
@@ -131,9 +123,10 @@ function renderizarTabela() {
 function alternarModoEdicao(ativo) {
     if (visualizandoArquivados) return;
     modoEdicaoAtivo = ativo;
-    document.getElementById('botoesPadrao').style.display = ativo ? 'none' : 'flex';
-    document.getElementById('avisoSelecao').style.display = ativo ? 'flex' : 'none';
+    OBTEM_ELEMENTO('botoesPadrao').style.display = ativo ? 'none' : 'flex';
+    OBTEM_ELEMENTO('avisoSelecao').style.display = ativo ? 'flex' : 'none';
 }
+
 const ativarModoEdicao = () => alternarModoEdicao(true);
 const cancelarModoEdicao = () => alternarModoEdicao(false);
 
@@ -142,53 +135,50 @@ function abrirRF3(tagEquipamento, elementoLinha) {
     if (!modoEdicaoAtivo && !visualizandoArquivados) return; 
 
     linhaSendoEditada = elementoLinha;
-    cancelarModoEdicao();
+    alternarModoEdicao(false);
 
-    const idx = elementoLinha.dataset.index;
-    const item = visualizandoArquivados ? itensArquivados[idx] : itensAtivos[idx];
+    const item = (visualizandoArquivados ? itensArquivados : itensAtivos)[elementoLinha.dataset.index];
 
-    const campos = ['inputNome', 'inputFabricante', 'txtDescricao', 'selectCriticidade', 'selectEtapa'];
-    campos.forEach(id => document.getElementById(id).disabled = visualizandoArquivados);
-    document.getElementById('inputTag').disabled = true;
+    CAMPOS_FORM.forEach(id => OBTEM_ELEMENTO(id).disabled = visualizandoArquivados);
+    OBTEM_ELEMENTO('inputTag').disabled = true;
 
-    document.getElementById('modalTitle').innerText = visualizandoArquivados ? "Visualizar Item Arquivado" : "Editar Equipamento";
-    document.getElementById('btnArquivarModal').style.display = visualizandoArquivados ? 'none' : 'block';
-    document.getElementById('btnDesarquivarModal').style.display = visualizandoArquivados ? 'block' : 'none';
+    OBTEM_ELEMENTO('modalTitle').innerText = visualizandoArquivados ? "Visualizar Item Arquivado" : "Editar Equipamento";
+    OBTEM_ELEMENTO('btnArquivarModal').style.display = visualizandoArquivados ? 'none' : 'block';
+    OBTEM_ELEMENTO('btnDesarquivarModal').style.display = visualizandoArquivados ? 'block' : 'none';
     document.querySelector('.btn-salvar').style.display = visualizandoArquivados ? 'none' : 'block';
 
-    document.getElementById('inputTag').value = item.tag || "";
-    document.getElementById('inputNome').value = item.nome || "";
-    document.getElementById('inputFabricante').value = item.fabricante || ""; 
-    document.getElementById('txtDescricao').value = item.descricao || "";
-    document.getElementById('selectCriticidade').value = item.criticidade || "BAIXA";
-    document.getElementById('selectEtapa').value = item.etapa || "ENVIO";
+    OBTEM_ELEMENTO('inputTag').value = item.tag || "";
+    OBTEM_ELEMENTO('inputNome').value = item.nome || "";
+    OBTEM_ELEMENTO('inputFabricante').value = item.fabricante || ""; 
+    OBTEM_ELEMENTO('txtDescricao').value = item.descricao || "";
+    OBTEM_ELEMENTO('selectCriticidade').value = item.criticidade || "BAIXA";
+    OBTEM_ELEMENTO('selectEtapa').value = item.etapa || "ENVIO";
 
-    document.getElementById('modalEquipamento').classList.add('active');
+    OBTEM_ELEMENTO('modalEquipamento').classList.add('active');
 }
 
 function abrirParaCadastrar() {
-    cancelarModoEdicao(); 
+    alternarModoEdicao(false); 
     linhaSendoEditada = null; 
     
-    document.getElementById('modalTitle').innerText = "Cadastrar Novo Item";
-    document.getElementById('formEquipamento').reset();
+    OBTEM_ELEMENTO('modalTitle').innerText = "Cadastrar Novo Item";
+    OBTEM_ELEMENTO('formEquipamento').reset();
     
-    const campos = ['inputNome', 'inputFabricante', 'txtDescricao', 'selectCriticidade', 'selectEtapa'];
-    campos.forEach(id => document.getElementById(id).disabled = false);
+    CAMPOS_FORM.forEach(id => OBTEM_ELEMENTO(id).disabled = false);
 
-    const inputTag = document.getElementById('inputTag');
+    const inputTag = OBTEM_ELEMENTO('inputTag');
     inputTag.disabled = true;
     inputTag.placeholder = "Gerado automaticamente"; 
 
-    document.getElementById('btnArquivarModal').style.display = 'none';
-    document.getElementById('btnDesarquivarModal').style.display = 'none';
+    OBTEM_ELEMENTO('btnArquivarModal').style.display = 'none';
+    OBTEM_ELEMENTO('btnDesarquivarModal').style.display = 'none';
     document.querySelector('.btn-salvar').style.display = 'block';
 
-    document.getElementById('modalEquipamento').classList.add('active');
+    OBTEM_ELEMENTO('modalEquipamento').classList.add('active');
 }
 
 function fecharModal() {
-    document.getElementById('modalEquipamento').classList.remove('active');
+    OBTEM_ELEMENTO('modalEquipamento').classList.remove('active');
     linhaSendoEditada = null;
 }
 
@@ -197,20 +187,17 @@ async function salvarFormulario(event) {
     event.preventDefault(); 
 
     const dadosForm = {
-        tag: document.getElementById('inputTag').value || null, 
-        nome: document.getElementById('inputNome').value,
-        fabricante: document.getElementById('inputFabricante').value,
-        descricao: document.getElementById('txtDescricao').value,
-        criticidade: document.getElementById('selectCriticidade').value,
-        etapa: document.getElementById('selectEtapa').value,
+        tag: OBTEM_ELEMENTO('inputTag').value || null, 
+        nome: OBTEM_ELEMENTO('inputNome').value,
+        fabricante: OBTEM_ELEMENTO('inputFabricante').value,
+        descricao: OBTEM_ELEMENTO('txtDescricao').value,
+        criticidade: OBTEM_ELEMENTO('selectCriticidade').value,
+        etapa: OBTEM_ELEMENTO('selectEtapa').value,
         setor: 'Planta de Beneficiamento'
     };
 
-    const isCadastro = document.getElementById('modalTitle').innerText === "Cadastrar Novo Item";
-    let acao = isCadastro ? "cadastrar" : "editar"; 
-    let idx = null;
-    let itemAntigo = null;
-    let alteracoes = [];
+    const isCadastro = OBTEM_ELEMENTO('modalTitle').innerText === "Cadastrar Novo Item";
+    let idx = null, itemAntigo = null, alteracoes = [];
 
     if (!isCadastro && linhaSendoEditada) {
         idx = linhaSendoEditada.dataset.index;
@@ -225,15 +212,11 @@ async function salvarFormulario(event) {
         const resposta = await fetch('../backend/salvar_itens.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ acao: acao, dados: dadosForm })
+            body: JSON.stringify({ acao: isCadastro ? "cadastrar" : "editar", dados: dadosForm })
         });
 
         const resultado = await resposta.json();
-
-        if (!resultado.sucesso) {
-            alert('Erro ao salvar no banco: ' + resultado.erro);
-            return;
-        }
+        if (!resultado.sucesso) return alert('Erro ao salvar no banco: ' + resultado.erro);
         
         if (isCadastro) {
             dadosForm.tag = resultado.tag; 
@@ -243,13 +226,9 @@ async function salvarFormulario(event) {
             itensAtivos[idx] = dadosForm;
             await registrarLog("EDIÇÃO", itemAntigo.tag, alteracoes.length > 0 ? alteracoes.join(', ') : 'Nenhum valor modificado.');
         }
-
-        console.log(resultado.mensagem);
-
     } catch (erro) {
         console.error('Erro na requisição:', erro);
-        alert('Erro de comunicação com o servidor.');
-        return;
+        return alert('Erro de comunicação com o servidor.');
     }
 
     renderizarTabela();
@@ -263,33 +242,18 @@ async function moverEquipamento(origem, destino, acaoLog, textoLog) {
     const item = origem[idx]; 
     const tagItem = item.tag || item.TAG || null;
 
-    if (!tagItem) {
-        alert("Erro local: Não foi possível localizar a TAG deste equipamento.");
-        return;
-    }
-    
-    const acaoBanco = (acaoLog === "ARQUIVAMENTO") ? "arquivar" : "desarquivar";
+    if (!tagItem) return alert("Erro local: Não foi possível localizar a TAG deste equipamento.");
 
     try {
         const resposta = await fetch('../backend/arquivar_itens.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                tag: tagItem,
-                acao: acaoBanco 
-            })
+            body: JSON.stringify({ tag: tagItem, acao: acaoLog === "ARQUIVAMENTO" ? "arquivar" : "desarquivar" })
         });
 
-        if (!resposta.ok) {
-            throw new Error(`Erro no servidor: Status ${resposta.status}`);
-        }
-
+        if (!resposta.ok) throw new Error(`Erro no servidor: Status ${resposta.status}`);
         const resultado = await resposta.json();
-
-        if (!resultado.sucesso) {
-            alert('Erro ao mover o item no banco de dados: ' + resultado.erro);
-            return;
-        }
+        if (!resultado.sucesso) return alert('Erro ao mover o item no banco de dados: ' + resultado.erro);
 
         origem.splice(idx, 1);
         destino.unshift(item);
@@ -297,10 +261,9 @@ async function moverEquipamento(origem, destino, acaoLog, textoLog) {
         await registrarLog(acaoLog, tagItem, `O equipamento "${item.nome || ''}" ${textoLog}`);
         renderizarTabela();
         fecharModal();
-
     } catch (erro) {
         console.error('Erro na requisição de arquivamento:', erro);
-        alert('Erro de comunicação com o servidor ao tentar alterar o status do item. Verifique o console do navegador.');
+        alert('Erro de comunicação com o servidor ao tentar alterar o status do item.');
     }
 }
 
@@ -311,15 +274,13 @@ function verArquivados() {
     visualizandoArquivados = !visualizandoArquivados;
     paginaAtualTabela = 1;
     
-    const btnIcone = document.getElementById('btnVerArquivados');
-    const botoesAcao = document.querySelectorAll('.btn-editar, .btn-adicionar');
-
+    const btnIcone = OBTEM_ELEMENTO('btnVerArquivados');
     if (btnIcone) {
         btnIcone.style.cssText = visualizandoArquivados ? "background-color: #ffb300; border-color: #ffb300; color: #22252a;" : "";
         btnIcone.title = visualizandoArquivados ? "Visualizar Itens Ativos" : "Visualizar Itens Arquivados";
     }
 
-    botoesAcao.forEach(btn => {
+    document.querySelectorAll('.btn-editar, .btn-adicionar').forEach(btn => {
         btn.disabled = visualizandoArquivados;
         btn.style.opacity = visualizandoArquivados ? "0.4" : "1";
         btn.style.cursor = visualizandoArquivados ? "not-allowed" : "pointer";
@@ -330,31 +291,22 @@ function verArquivados() {
 
 // EXPORTAÇÃO E FILTROS
 function configurarFiltroPesquisa() {
-    const inputPesquisa = document.querySelector('.search-input');
-    if (!inputPesquisa) return;
-
-    inputPesquisa.addEventListener('input', function() {
-        paginaAtualTabela = 1;
-        const termo = this.value.toLowerCase();
-        document.querySelectorAll('.custom-table tbody tr').forEach(linha => {
-            if (linha.cells.length <= 1) return;
-            const tag = linea = linha.cells[0].innerText.toLowerCase();
-            const nome = linha.cells[1].innerText.toLowerCase();
-            linha.style.display = (tag.includes(termo) || nome.includes(termo)) ? "" : "none";
-        });
+    document.querySelector('.search-input')?.addEventListener('input', function() {
+        paginaAtualTabela = 1; 
+        termoPesquisa = this.value.toLowerCase(); 
+        renderizarTabela(); 
     });
 }
 
 function ordenarPor(propriedade, pesos, flagCrescente, setaId) {
     const lista = visualizandoArquivados ? itensArquivados : itensAtivos;
-    
     lista.sort((a, b) => {
         const pesoA = pesos[a[propriedade].toUpperCase()] || 0;
         const pesoB = pesos[b[propriedade].toUpperCase()] || 0;
         return flagCrescente ? pesoA - pesoB : pesoB - pesoA;
     });
 
-    const seta = document.getElementById(setaId);
+    const seta = OBTEM_ELEMENTO(setaId);
     if (seta) seta.innerText = flagCrescente ? "⬇" : "⬆";
     renderizarTabela();
 }
@@ -370,20 +322,15 @@ const ordenarPorEtapa = () => {
 };
 
 function verHistorico() {
-    cancelarModoEdicao();
-    const modal = document.getElementById('modalHistorico');
-    if (!modal) return;
-
-    // Reseta para a primeira página ao abrir o histórico
+    alternarModoEdicao(false);
+    if (!OBTEM_ELEMENTO('modalHistorico')) return;
     paginaAtualHist = 1; 
     renderizarListaHistorico();
-
-    modal.classList.add('active');
+    OBTEM_ELEMENTO('modalHistorico').classList.add('active');
 }
 
-// Nova função auxiliar para renderizar especificamente a lista do histórico com paginação
 function renderizarListaHistorico() {
-    const listaContainer = document.getElementById('listaHistorico');
+    const listaContainer = OBTEM_ELEMENTO('listaHistorico');
     if (!listaContainer) return;
 
     if (historicoAlteracoes.length === 0) {
@@ -393,15 +340,13 @@ function renderizarListaHistorico() {
     }
 
     const totalPaginas = Math.ceil(historicoAlteracoes.length / itensPorPaginaHist);
-    if (paginaAtualHist > totalPaginas) paginaAtualHist = totalPaginas;
-    if (paginaAtualHist < 1) paginaAtualHist = 1;
+    paginaAtualHist = Math.max(1, Math.min(paginaAtualHist, totalPaginas));
 
-    const indiceInicio = (paginaAtualHist - 1) * itensPorPaginaHist;
-    const indiceFim = indiceInicio + itensPorPaginaHist;
-    const logsPaginados = historicoAlteracoes.slice(indiceInicio, indiceFim);
+    const logsPaginados = historicoAlteracoes.slice((paginaAtualHist - 1) * itensPorPaginaHist, paginaAtualHist * itensPorPaginaHist);
 
     listaContainer.innerHTML = logsPaginados.map(log => {
-        let cor = log.acao === "CADASTRO" ? "#2196f3" : log.acao === "EDIÇÃO" ? "#ffb300" : log.acao === "ARQUIVAMENTO" ? "#d32f2f" : "#4fa135";
+        const cores = { CADASTRO: "#2196f3", EDIÇÃO: "#ffb300", ARQUIVAMENTO: "#d32f2f" };
+        const cor = cores[log.acao] || "#4fa135";
         return `
             <div style="background-color: #1a1c1e; border-left: 4px solid ${cor}; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
                 <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a0a5ad; margin-bottom: 4px;">
@@ -415,135 +360,78 @@ function renderizarListaHistorico() {
     atualizarControlesPaginacao('Hist', paginaAtualHist, totalPaginas);
 }
 
-function fecharModalHistorico() {
-    document.getElementById('modalHistorico').classList.remove('active');
-}
+const fecharModalHistorico = () => OBTEM_ELEMENTO('modalHistorico').classList.remove('active');
 
 // DOWNLOAD DO HISTÓRICO
 function baixarHistorico() {
     if (historicoAlteracoes.length === 0) return alert("Não há registros para exportar.");
 
-    const dataInicioStr = document.getElementById('dataInicio').value;
-    const dataFimStr = document.getElementById('dataFim').value;
+    const dataInicioStr = OBTEM_ELEMENTO('dataInicio').value;
+    const dataFimStr = OBTEM_ELEMENTO('dataFim').value;
 
-    let logsFiltrados = [...historicoAlteracoes];
+    const logsFiltrados = historicoAlteracoes.filter(log => {
+        const dataLogIso = log.data.includes('-') ? log.data.split(' ')[0] : log.data.split(' ')[0].split('/').reverse().join('-');
+        return (!dataInicioStr || dataLogIso >= dataInicioStr) && (!dataFimStr || dataLogIso <= dataFimStr);
+    });
 
-    // Tratamento dinâmico para o filtro de datas
-    if (dataInicioStr || dataFimStr) {
-        logsFiltrados = historicoAlteracoes.filter(log => {
-            let dataLogIso = "";
+    if (logsFiltrados.length === 0) return alert("Nenhum registro encontrado para o período selecionado.");
 
-            // Se a data vier do banco ("YYYY-MM-DD HH:MM:SS")
-            if (log.data.includes('-')) {
-                dataLogIso = log.data.split(' ')[0];
-            } 
-            // Se a data foi gerada recentemente pelo front ("DD/MM/YYYY às HH:MM")
-            else if (log.data.includes('/')) {
-                const dataPura = log.data.split(' ')[0]; // Pega "DD/MM/YYYY"
-                dataLogIso = dataPura.split('/').reverse().join('-'); // Transforma em "YYYY-MM-DD"
-            }
-
-            let valido = true;
-            if (dataInicioStr && dataLogIso < dataInicioStr) valido = false;
-            if (dataFimStr && dataLogIso > dataFimStr) valido = false;
-            
-            return valido;
-        });
-    }
-
-    if (logsFiltrados.length === 0) {
-        return alert("Nenhum registro encontrado para o período selecionado.");
-    }
-
-    // Gerando o cabeçalho do PDF explicitando fuso horário de Brasília
-    const agoraRelatorio = new Date();
-    const dataRelatorio = agoraRelatorio.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
-    const horaRelatorio = agoraRelatorio.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    const fuso = { timeZone: 'America/Sao_Paulo' };
+    const coresHtml = { CADASTRO: "#2196f3", EDIÇÃO: "#ffb300", ARQUIVAMENTO: "#d32f2f" };
 
     let conteudoHtml = `
-            <html>
-            <head>
-                <title>Relatório de Histórico de Alterações</title>
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 30px; color: #333; }
-                    h1 { text-align: center; color: #2c3e50; margin-bottom: 5px; }
-                    p.sub { text-align: center; color: #7f8c8d; font-size: 14px; margin-top: 0; margin-bottom: 30px; }
-                    .item-log { border-bottom: 1px solid #eee; padding: 15px 0; page-break-inside: avoid; }
-                    .topo-log { display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 5px; }
-                    .acao { font-weight: bold; }
-                    .tag { color: #27ae60; font-weight: bold; }
-                    .detalhes { font-size: 14px; margin: 0; color: #2c3e50; }
-                    @media print {
-                        body { margin: 0; }
-                    }
-                </style>
-            </head>
-            <body>
-                <h1>HISTÓRICO DE ALTERAÇÕES DO SISTEMA</h1>
-                <p class="sub">Gerado em: ${dataRelatorio} às ${horaRelatorio}</p>
-        `;
+        <html><head><title>Relatório de Histórico</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 30px; color: #333; }
+            h1 { text-align: center; color: #2c3e50; }
+            p.sub { text-align: center; color: #7f8c8d; font-size: 14px; }
+            .item-log { border-bottom: 1px solid #eee; padding: 15px 0; page-break-inside: avoid; }
+            .topo-log { display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; }
+            .tag { color: #27ae60; font-weight: bold; }
+            .detalhes { font-size: 14px; margin: 5px 0 0 0; color: #2c3e50; }
+        </style></head>
+        <body><h1>HISTÓRICO DE ALTERAÇÕES DO SISTEMA</h1><p class="sub">Gerado em: ${new Date().toLocaleDateString('pt-BR', fuso)} às ${new Date().toLocaleTimeString('pt-BR', fuso)}</p>`;
 
-    logsFiltrados.forEach((log) => {
+    logsFiltrados.forEach(log => {
         let dataExibicao = log.data;
-        
-        // Padroniza a exibição visual estritamente para o formato brasileiro DD/MM/YYYY
         if (log.data.includes('-')) {
             const partes = log.data.split(' ');
-            const dataPura = partes[0].split('-').reverse().join('/');
-            dataExibicao = `${dataPura} às ${partes[1] ? partes[1].substring(0, 5) : ''}`;
+            dataExibicao = `${partes[0].split('-').reverse().join('/')} às ${partes[1] ? partes[1].substring(0, 5) : ''}`;
         }
-
-        let corAcao = log.acao === "CADASTRO" ? "#2196f3" : log.acao === "EDIÇÃO" ? "#ffb300" : log.acao === "ARQUIVAMENTO" ? "#d32f2f" : "#4fa135";
 
         conteudoHtml += `
             <div class="item-log">
-                <div class="topo-log">
-                    <span><strong>Data:</strong> ${dataExibicao}</span>
-                    <span class="acao" style="color: ${corAcao};">${log.acao}</span>
-                </div>
+                <div class="topo-log"><span><strong>Data:</strong> ${dataExibicao}</span><span style="color: ${coresHtml[log.acao] || "#4fa135"}; font-weight:bold;">${log.acao}</span></div>
                 <p class="detalhes"><span class="tag">[${log.tag}]</span> ${log.detalhes}</p>
-            </div>
-        `;
+            </div>`;
     });
 
-    conteudoHtml += `</body></html>`;
-
     const janelaImpressao = window.open('', '_blank');
-    janelaImpressao.document.write(conteudoHtml);
+    janelaImpressao.document.write(conteudoHtml + '</body></html>');
     janelaImpressao.document.close();
-    
-    setTimeout(() => {
-        janelaImpressao.print();
-        janelaImpressao.close();
-    }, 250);
+    setTimeout(() => { janelaImpressao.print(); janelaImpressao.close(); }, 250);
 }
 
-// FUNÇÕES DE CONTROLE DE NAVEGAÇÃO
-function mudarPaginaTabela(direcao) {
-    paginaAtualTabela += direcao;
-    renderizarTabela();
+// NAVEGAÇÃO & PAGINAÇÃO
+function mudarPagina(tipo, direcao) {
+    if (tipo === 'Tabela') {
+        paginaAtualTabela += direcao;
+        renderizarTabela();
+    } else if (tipo === 'Hist') {
+        paginaAtualHist += direcao;
+        renderizarListaHistorico();
+    }
 }
+const mudarPaginaTabela = direcao => mudarPagina('Tabela', direcao);
+const mudarPaginaHist = direcao => mudarPagina('Hist', direcao);
 
-function mudarPaginaHist(direcao) {
-    paginaAtualHist += direcao;
-    renderizarListaHistorico();
-}
-
-// FUNÇÃO AUXILIAR PARA ATUALIZAR OS COMPONENTES VISUAIS (< 1 / 3 >)
 function atualizarControlesPaginacao(tipo, paginaAtual, totalPaginas) {
-    const btnAnterior = document.getElementById(`btn${tipo}Anterior`);
-    const btnProximo = document.getElementById(`btn${tipo}Proxima`);
-    const infoPagina = document.getElementById(`infoPagina${tipo}`);
-
-    if (infoPagina) {
-        infoPagina.innerText = `${paginaAtual} / ${totalPaginas}`;
-    }
-
-    if (btnAnterior) {
-        btnAnterior.disabled = (paginaAtual === 1);
-    }
-
-    if (btnProximo) {
-        btnProximo.disabled = (paginaAtual === totalPaginas || totalPaginas === 0);
-    }
+    const infoPagina = OBTEM_ELEMENTO(`infoPagina${tipo}`);
+    if (infoPagina) infoPagina.innerText = `${paginaAtual} / ${totalPaginas}`;
+    
+    const btnAnterior = OBTEM_ELEMENTO(`btn${tipo}Anterior`);
+    if (btnAnterior) btnAnterior.disabled = (paginaAtual === 1);
+    
+    const btnProximo = OBTEM_ELEMENTO(`btn${tipo}Proxima`);
+    if (btnProximo) btnProximo.disabled = (paginaAtual === totalPaginas || totalPaginas === 0);
 }
