@@ -1,9 +1,13 @@
-// VARIÁVEIS DE ESTADO GLOBAL
 let modoEdicaoAtivo = false;
 let linhaSendoEditada = null;
 let ordemCrescenteCriticidade = true;
 let ordemCrescenteEtapa = true;
 let visualizandoArquivados = false;
+
+let paginaAtualTabela = 1;
+const itensPorPaginaTabela = 15;
+let paginaAtualHist = 1;
+const itensPorPaginaHist = 10;
 
 let itensAtivos = [];
 let itensArquivados = [];
@@ -78,13 +82,26 @@ function renderizarTabela() {
 
     if (listaAtual.length === 0) {
         tabelaBody.innerHTML = `<tr><td colspan="6" style="color: #a0a5ad; font-style: italic; padding: 30px; text-align: center;">Nenhum item encontrado.</td></tr>`;
+        atualizarControlesPaginacao('Tabela', 1, 1);
         return;
     }
 
-    listaAtual.forEach((item, index) => {
+    // Lógica de Paginação da Tabela
+    const totalPaginas = Math.ceil(listaAtual.length / itensPorPaginaTabela);
+    if (paginaAtualTabela > totalPaginas) paginaAtualTabela = totalPaginas;
+    if (paginaAtualTabela < 1) paginaAtualTabela = 1;
+
+    const indiceInicio = (paginaAtualTabela - 1) * itensPorPaginaTabela;
+    const indiceFim = indiceInicio + itensPorPaginaTabela;
+    const itensPaginados = listaAtual.slice(indiceInicio, indiceFim);
+
+    itensPaginados.forEach((item, index) => {
+        // O index real na lista total precisa considerar a página
+        const indexReal = indiceInicio + index; 
+        
         const novaLinha = document.createElement('tr');
         novaLinha.style.cursor = "pointer";
-        novaLinha.dataset.index = index;
+        novaLinha.dataset.index = indexReal;
         novaLinha.dataset.id = item.id;
 
         const tagGarantida = item.tag ? String(item.tag) : "";
@@ -106,6 +123,8 @@ function renderizarTabela() {
         `;
         tabelaBody.appendChild(novaLinha);
     });
+
+    atualizarControlesPaginacao('Tabela', paginaAtualTabela, totalPaginas);
 }
 
 // CONTROLE DE MODOS (EDIÇÃO / VISUALIZAÇÃO)
@@ -290,6 +309,7 @@ const desarquivarEquipamento = () => moverEquipamento(itensArquivados, itensAtiv
 
 function verArquivados() {
     visualizandoArquivados = !visualizandoArquivados;
+    paginaAtualTabela = 1;
     
     const btnIcone = document.getElementById('btnVerArquivados');
     const botoesAcao = document.querySelectorAll('.btn-editar, .btn-adicionar');
@@ -314,6 +334,7 @@ function configurarFiltroPesquisa() {
     if (!inputPesquisa) return;
 
     inputPesquisa.addEventListener('input', function() {
+        paginaAtualTabela = 1;
         const termo = this.value.toLowerCase();
         document.querySelectorAll('.custom-table tbody tr').forEach(linha => {
             if (linha.cells.length <= 1) return;
@@ -351,24 +372,47 @@ const ordenarPorEtapa = () => {
 function verHistorico() {
     cancelarModoEdicao();
     const modal = document.getElementById('modalHistorico');
-    const listaContainer = document.getElementById('listaHistorico');
-    if (!modal || !listaContainer) return;
+    if (!modal) return;
 
-    listaContainer.innerHTML = historicoAlteracoes.length === 0 
-        ? `<p style="color: #a0a5ad; font-style: italic; text-align: center; padding: 20px;">Nenhum registro até o momento.</p>`
-        : historicoAlteracoes.map(log => {
-            let cor = log.acao === "CADASTRO" ? "#2196f3" : log.acao === "EDIÇÃO" ? "#ffb300" : log.acao === "ARQUIVAMENTO" ? "#d32f2f" : "#4fa135";
-            return `
-                <div style="background-color: #1a1c1e; border-left: 4px solid ${cor}; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
-                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a0a5ad; margin-bottom: 4px;">
-                        <span><strong>${log.data}</strong></span>
-                        <span style="color: ${cor}; font-weight: bold;">${log.acao}</span>
-                    </div>
-                    <p style="font-size: 14px; color: #ffffff; margin: 0;"><strong style="color: #5c913b;">[${log.tag}]</strong> ${log.detalhes}</p>
-                </div>`;
-        }).join('');
+    // Reseta para a primeira página ao abrir o histórico
+    paginaAtualHist = 1; 
+    renderizarListaHistorico();
 
     modal.classList.add('active');
+}
+
+// Nova função auxiliar para renderizar especificamente a lista do histórico com paginação
+function renderizarListaHistorico() {
+    const listaContainer = document.getElementById('listaHistorico');
+    if (!listaContainer) return;
+
+    if (historicoAlteracoes.length === 0) {
+        listaContainer.innerHTML = `<p style="color: #a0a5ad; font-style: italic; text-align: center; padding: 20px;">Nenhum registro até o momento.</p>`;
+        atualizarControlesPaginacao('Hist', 1, 1);
+        return;
+    }
+
+    const totalPaginas = Math.ceil(historicoAlteracoes.length / itensPorPaginaHist);
+    if (paginaAtualHist > totalPaginas) paginaAtualHist = totalPaginas;
+    if (paginaAtualHist < 1) paginaAtualHist = 1;
+
+    const indiceInicio = (paginaAtualHist - 1) * itensPorPaginaHist;
+    const indiceFim = indiceInicio + itensPorPaginaHist;
+    const logsPaginados = historicoAlteracoes.slice(indiceInicio, indiceFim);
+
+    listaContainer.innerHTML = logsPaginados.map(log => {
+        let cor = log.acao === "CADASTRO" ? "#2196f3" : log.acao === "EDIÇÃO" ? "#ffb300" : log.acao === "ARQUIVAMENTO" ? "#d32f2f" : "#4fa135";
+        return `
+            <div style="background-color: #1a1c1e; border-left: 4px solid ${cor}; padding: 12px; margin-bottom: 10px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #a0a5ad; margin-bottom: 4px;">
+                    <span><strong>${log.data}</strong></span>
+                    <span style="color: ${cor}; font-weight: bold;">${log.acao}</span>
+                </div>
+                <p style="font-size: 14px; color: #ffffff; margin: 0;"><strong style="color: #5c913b;">[${log.tag}]</strong> ${log.detalhes}</p>
+            </div>`;
+    }).join('');
+
+    atualizarControlesPaginacao('Hist', paginaAtualHist, totalPaginas);
 }
 
 function fecharModalHistorico() {
@@ -472,4 +516,34 @@ function baixarHistorico() {
         janelaImpressao.print();
         janelaImpressao.close();
     }, 250);
+}
+
+// FUNÇÕES DE CONTROLE DE NAVEGAÇÃO
+function mudarPaginaTabela(direcao) {
+    paginaAtualTabela += direcao;
+    renderizarTabela();
+}
+
+function mudarPaginaHist(direcao) {
+    paginaAtualHist += direcao;
+    renderizarListaHistorico();
+}
+
+// FUNÇÃO AUXILIAR PARA ATUALIZAR OS COMPONENTES VISUAIS (< 1 / 3 >)
+function atualizarControlesPaginacao(tipo, paginaAtual, totalPaginas) {
+    const btnAnterior = document.getElementById(`btn${tipo}Anterior`);
+    const btnProximo = document.getElementById(`btn${tipo}Proxima`);
+    const infoPagina = document.getElementById(`infoPagina${tipo}`);
+
+    if (infoPagina) {
+        infoPagina.innerText = `${paginaAtual} / ${totalPaginas}`;
+    }
+
+    if (btnAnterior) {
+        btnAnterior.disabled = (paginaAtual === 1);
+    }
+
+    if (btnProximo) {
+        btnProximo.disabled = (paginaAtual === totalPaginas || totalPaginas === 0);
+    }
 }

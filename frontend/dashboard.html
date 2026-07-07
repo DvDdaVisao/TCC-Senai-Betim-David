@@ -51,12 +51,14 @@
                     </tr>
                 </thead>
                 <tbody>
-                    </tbody>
+                </tbody>
             </table>
+        </div> <div class="paginacao-container">
+            <button class="btn-paginacao" id="btnTabelaAnterior" onclick="mudarPaginaTabela(-1)">&lt;</button>
+            <span class="info-paginacao" id="infoPaginaTabela">1 / 1</span>
+            <button class="btn-paginacao" id="btnTabelaProxima" onclick="mudarPaginaTabela(1)">&gt;</button>
         </div>
-    </div>
-
-    <div class="modal-overlay" id="modalEquipamento">
+    </div> <div class="modal-overlay" id="modalEquipamento">
         <div class="modal-box">
             <div class="modal-header">
                 <h2 id="modalTitle">Editar Equipamento</h2>
@@ -116,34 +118,38 @@
     </div>
 
     <div class="modal-overlay" id="modalHistorico">
-    <div class="modal-box modal-historico-largura">
-        <div class="modal-header modal-historico-header">
-            <h2>Histórico de Alterações</h2>
-            <button class="close-btn modal-historico-close" onclick="fecharModalHistorico()">X</button>
-        </div>
-        
-        <div class="filtro-pdf-container">
-            <div class="filtro-datas-wrapper">
-                <div class="filtro-data-grupo">
-                    <label class="filtro-data-label">DE:</label>
-                    <input type="date" id="dataInicio" class="filtro-data-input">
-                </div>
-                <div class="filtro-data-grupo">
-                    <label class="filtro-data-label">ATÉ:</label>
-                    <input type="date" id="dataFim" class="filtro-data-input">
-                </div>
+        <div class="modal-box modal-historico-largura">
+            <div class="modal-header modal-historico-header">
+                <h2>Histórico de Alterações</h2>
+                <button class="close-btn modal-historico-close" onclick="fecharModalHistorico()">X</button>
             </div>
             
-            <button class="btn btn-gerar-pdf" onclick="baixarHistorico()">
-                <span class="material-symbols-outlined">file_save</span> GERAR PDF        
-            </button>
-        </div>
-        
-        <div id="listaHistorico" class="lista-historico-corpo">
+            <div class="filtro-pdf-container">
+                <div class="filtro-datas-wrapper">
+                    <div class="filtro-data-grupo">
+                        <label class="filtro-data-label">DE:</label>
+                        <input type="date" id="dataInicio" class="filtro-data-input">
+                    </div>
+                    <div class="filtro-data-grupo">
+                        <label class="filtro-data-label">ATÉ:</label>
+                        <input type="date" id="dataFim" class="filtro-data-input">
+                    </div>
+                </div>
+                
+                <button class="btn btn-gerar-pdf" onclick="baixarHistorico()">
+                    <span class="material-symbols-outlined">file_save</span> GERAR PDF        
+                </button>
             </div>
+            
+            <div id="listaHistorico" class="lista-historico-corpo"></div>
+            
+            <div class="paginacao-container" style="margin-top: 15px; margin-bottom: 5px;">
+                <button class="btn-paginacao" id="btnHistAnterior" onclick="mudarPaginaHist(-1)">&lt;</button>
+                <span class="info-paginacao" id="infoPaginaHist">1 / 1</span>
+                <button class="btn-paginacao" id="btnHistProxima" onclick="mudarPaginaHist(1)">&gt;</button>
+            </div>
+        </div>
     </div>
-</div>
-
 
     <script src="js/api.js" defer></script>
     <script src="js/dashboard.js" defer></script>

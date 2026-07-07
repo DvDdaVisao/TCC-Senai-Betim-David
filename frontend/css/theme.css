@@ -31,7 +31,7 @@ body {
     min-height: 100vh;
 }
 
-/* Forçar elementos de formulário a usarem a fonte do Dashboard por padrão */
+/* Forçar elementos de formulário a usarem a fonte padrão */
 input, textarea, select, button {
     font-family: var(--font-dashboard);
 }
@@ -67,11 +67,11 @@ input, textarea, select, button {
     font-weight: bold;
     display: inline-block;
 }
-.badge.alta { background-color: #d32f2f; color: #fff; }
-.badge.media { background-color: #f57c00; color: #fff; }
-.badge.baixa { background-color: #388e3c; color: #fff; }
-.badge.envio { background-color: #7b1fa2; color: #fff; }
-.badge.peritagem { background-color: #1976d2; color: #fff; }
-.badge.aprovacao { background-color: #00796b; color: #fff; }
+.badge.alta { background-color: #d32f2f; color: var(--text-white); }
+.badge.media { background-color: #f57c00; color: var(--text-white); }
+.badge.baixa { background-color: #388e3c; color: var(--text-white); }
+.badge.envio { background-color: #7b1fa2; color: var(--text-white); }
+.badge.peritagem { background-color: #1976d2; color: var(--text-white); }
+.badge.aprovacao { background-color: #00796b; color: var(--text-white); }
 .badge.execucao { background-color: #fbc02d; color: #333; }
-.badge.retorno { background-color: #e64a19; color: #fff; }
+.badge.retorno { background-color: #e64a19; color: var(--text-white); }
