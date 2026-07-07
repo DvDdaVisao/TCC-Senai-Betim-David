@@ -73,12 +73,14 @@
 
                 <div class="form-group">
                     <label>Nome do Equipamento</label>
-                    <input type="text" id="inputNome" placeholder="Ex: Bomba de Polpa" required>
+                    <input type="text" id="inputNome" placeholder="Ex: Bomba de Polpa" required autocomplete="off" list="listaNomesRecomendados">
+                    <datalist id="listaNomesRecomendados"></datalist>
                 </div>
 
                 <div class="form-group">
-                    <label>Fabricante</label>
-                    <input type="text" id="inputFabricante" placeholder="Ex: WEG, Siemens">
+                    <label>Setor</label>
+                    <input type="text" id="inputSetor" placeholder="Ex: Planta de Beneficiamento" autocomplete="off" list="listaSetoresRecomendados">
+                    <datalist id="listaSetoresRecomendados"></datalist>
                 </div>
 
                 <div class="form-group">

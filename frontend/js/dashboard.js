@@ -15,7 +15,7 @@ let itensAtivos = [];
 let itensArquivados = [];
 let historicoAlteracoes = [];
 
-const CAMPOS_FORM = ['inputNome', 'inputFabricante', 'txtDescricao', 'selectCriticidade', 'selectEtapa'];
+const CAMPOS_FORM = ['inputNome', 'inputSetor', 'txtDescricao', 'selectCriticidade', 'selectEtapa'];
 const OBTEM_ELEMENTO = id => document.getElementById(id);
 
 // INICIALIZAÇÃO DO SISTEMA
@@ -60,6 +60,7 @@ async function carregarDadosDoBanco() {
             itensArquivados = dados.arquivados || [];
             historicoAlteracoes = dados.historico || []; 
             renderizarTabela();
+            atualizarDatalistsRecomendacoes();
         }
     } catch (erro) {
         console.error('Erro ao processar os dados da API:', erro);
@@ -149,7 +150,7 @@ function abrirRF3(tagEquipamento, elementoLinha) {
 
     OBTEM_ELEMENTO('inputTag').value = item.tag || "";
     OBTEM_ELEMENTO('inputNome').value = item.nome || "";
-    OBTEM_ELEMENTO('inputFabricante').value = item.fabricante || ""; 
+    OBTEM_ELEMENTO('inputSetor').value = item.setor || ""; 
     OBTEM_ELEMENTO('txtDescricao').value = item.descricao || "";
     OBTEM_ELEMENTO('selectCriticidade').value = item.criticidade || "BAIXA";
     OBTEM_ELEMENTO('selectEtapa').value = item.etapa || "ENVIO";
@@ -189,7 +190,7 @@ async function salvarFormulario(event) {
     const dadosForm = {
         tag: OBTEM_ELEMENTO('inputTag').value || null, 
         nome: OBTEM_ELEMENTO('inputNome').value,
-        fabricante: OBTEM_ELEMENTO('inputFabricante').value,
+        setor: OBTEM_ELEMENTO('inputSetor').value,
         descricao: OBTEM_ELEMENTO('txtDescricao').value,
         criticidade: OBTEM_ELEMENTO('selectCriticidade').value,
         etapa: OBTEM_ELEMENTO('selectEtapa').value,
@@ -232,7 +233,49 @@ async function salvarFormulario(event) {
     }
 
     renderizarTabela();
+    atualizarDatalistsRecomendacoes();
     fecharModal();
+}
+
+// ATUALIZA AS SUGESTÕES DOS INPUTS (AUTOCOMPLETE)
+// ATUALIZA AS SUGESTÕES DOS INPUTS (AUTOCOMPLETE)
+function atualizarDatalistsRecomendacoes() {
+    const datalistNome = OBTEM_ELEMENTO('listaNomesRecomendados');
+    const datalistSetor = OBTEM_ELEMENTO('listaSetoresRecomendados');
+    
+    if (!datalistNome || !datalistSetor) {
+        console.warn("Aviso: Elementos datalist não foram encontrados no DOM. Verifique os IDs no HTML.");
+        return;
+    }
+
+    // Une ativos e arquivados para buscar todo o histórico do banco
+    const todosOsItens = [...itensAtivos, ...itensArquivados];
+
+    const nomes = [];
+    const setores = [];
+
+    todosOsItens.forEach(item => {
+        // Aceita as chaves tanto em maiúsculo quanto em minúsculo vindas do PHP
+        const nomeValido = item.nome || item.NOME || item.Nome;
+        const setorValido = item.setor || item.SETOR || item.Setor;
+
+        if (nomeValido && String(nomeValido).trim() !== "") {
+            nomes.push(String(nomeValido).trim());
+        }
+        if (setorValido && String(setorValido).trim() !== "") {
+            setores.push(String(setorValido).trim());
+        }
+    });
+
+    // Remove os nomes e setores duplicados e ordena de A-Z
+    const nomesUnicos = [...new Set(nomes)].sort((a, b) => a.localeCompare(b));
+    const setoresUnicos = [...new Set(setores)].sort((a, b) => a.localeCompare(b));
+
+    // Injeta as opções dentro das tags <datalist>
+    datalistNome.innerHTML = nomesUnicos.map(nome => `<option value="${nome}"></option>`).join('');
+    datalistSetor.innerHTML = setoresUnicos.map(setor => `<option value="${setor}"></option>`).join('');
+    
+    console.log("Datalists atualizados com sucesso!", { TotalNomes: nomesUnicos.length, TotalSetores: setoresUnicos.length });
 }
 
 // ARQUIVAR / DESARQUIVAR
