@@ -1,6 +1,6 @@
 <?php
 // 1. Importa o seu arquivo de conexão. 
-require_once 'Conexao/Conexao.php'; 
+require_once __DIR__ . '/../Conexao/Conexao.php';
 
 header('Content-Type: application/json');
 
