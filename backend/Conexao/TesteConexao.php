@@ -9,13 +9,13 @@ try {
     
     $query = $db->query("SHOW TABLES LIKE 'Funcionarios'");
     if ($query->rowCount() > 0) {
-        echo "✔ A tabela 'Funcionarios' foi encontrada no banco!";
+        echo "A tabela 'Funcionarios' foi encontrada no banco!";
     } else {
-        echo "⚠ Conexão OK, mas a tabela 'Funcionarios' não foi encontrada. Verifique se executou o script SQL.";
+        echo "Conexão OK, mas a tabela 'Funcionarios' não foi encontrada. Verifique se executou o script SQL.";
     }
 
     Conexao::fecharConexao();
-    echo "✔ Conexão encerrada com sucesso após o teste.";
+    echo "Conexão encerrada com sucesso após o teste.";
 
 } catch (Exception $e) {
     echo "Falha na Conexão!";

@@ -33,7 +33,7 @@ abstract class Funcionario {
                 return $usuario['cargo']; // Retorna o cargo para sabermos para onde redirecionar
             }
             
-            return false; // Credenciais inválidas
+            return false;
             
         } catch (PDOException $e) {
             die("Erro no sistema: " . $e->getMessage());

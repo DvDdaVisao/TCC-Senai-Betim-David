@@ -239,7 +239,6 @@ async function salvarFormulario(event) {
 }
 
 // ATUALIZA AS SUGESTÕES DOS INPUTS (AUTOCOMPLETE)
-// ATUALIZA AS SUGESTÕES DOS INPUTS (AUTOCOMPLETE)
 function atualizarDatalistsRecomendacoes() {
     const datalistNome = OBTEM_ELEMENTO('listaNomesRecomendados');
     const datalistSetor = OBTEM_ELEMENTO('listaSetoresRecomendados');
@@ -249,14 +248,12 @@ function atualizarDatalistsRecomendacoes() {
         return;
     }
 
-    // Une ativos e arquivados para buscar todo o histórico do banco
     const todosOsItens = [...itensAtivos, ...itensArquivados];
 
     const nomes = [];
     const setores = [];
 
     todosOsItens.forEach(item => {
-        // Aceita as chaves tanto em maiúsculo quanto em minúsculo vindas do PHP
         const nomeValido = item.nome || item.NOME || item.Nome;
         const setorValido = item.setor || item.SETOR || item.Setor;
 
@@ -268,11 +265,9 @@ function atualizarDatalistsRecomendacoes() {
         }
     });
 
-    // Remove os nomes e setores duplicados e ordena de A-Z
     const nomesUnicos = [...new Set(nomes)].sort((a, b) => a.localeCompare(b));
     const setoresUnicos = [...new Set(setores)].sort((a, b) => a.localeCompare(b));
 
-    // Injeta as opções dentro das tags <datalist>
     datalistNome.innerHTML = nomesUnicos.map(nome => `<option value="${nome}"></option>`).join('');
     datalistSetor.innerHTML = setoresUnicos.map(setor => `<option value="${setor}"></option>`).join('');
     
@@ -314,6 +309,7 @@ async function moverEquipamento(origem, destino, acaoLog, textoLog) {
 const arquivarEquipamento = () => moverEquipamento(itensAtivos, itensArquivados, "ARQUIVAMENTO", "foi enviado para a lista de arquivados.");
 const desarquivarEquipamento = () => moverEquipamento(itensArquivados, itensAtivos, "DESARQUIVAMENTO", "foi restaurado para os ativos.");
 
+// VISUALIZAÇÃO DE ITENS ARQUIVADOS
 function verArquivados() {
     visualizandoArquivados = !visualizandoArquivados;
     paginaAtualTabela = 1;
@@ -335,21 +331,20 @@ function verArquivados() {
 
 // EXPORTAÇÃO E FILTROS
 function configurarFiltroPesquisa() {
-    // Escuta a pesquisa da tabela principal
     document.querySelector('#toolbarContainer .search-input')?.addEventListener('input', function() {
         paginaAtualTabela = 1; 
         termoPesquisa = this.value.toLowerCase(); 
         renderizarTabela(); 
     });
 
-    // Escuta a pesquisa do modal de histórico
     document.getElementById('searchHistorico')?.addEventListener('input', function() {
-        paginaAtualHist = 1; // Volta para a página 1 ao filtrar
-        termoPesquisaHistorico = this.value.toLowerCase(); // Atualiza o termo global do histórico
-        renderizarListaHistorico(); // Re-renderiza a lista com o filtro aplicado
+        paginaAtualHist = 1;
+        termoPesquisaHistorico = this.value.toLowerCase();
+        renderizarListaHistorico();
     });
 }
 
+// ORDENAÇÃO
 function ordenarPor(propriedade, pesos, flagCrescente, setaId) {
     const lista = visualizandoArquivados ? itensArquivados : itensAtivos;
     lista.sort((a, b) => {
@@ -373,11 +368,11 @@ const ordenarPorEtapa = () => {
     ordemCrescenteEtapa = !ordemCrescenteEtapa;
 };
 
+// HISTÓRICO DE ALTERAÇÕES
 function verHistorico() {
     alternarModoEdicao(false);
     if (!OBTEM_ELEMENTO('modalHistorico')) return;
     
-    // Limpa a barra de pesquisa ao abrir o modal
     const inputBuscaHist = OBTEM_ELEMENTO('searchHistorico');
     if (inputBuscaHist) inputBuscaHist.value = '';
     termoPesquisaHistorico = ''; 
@@ -387,13 +382,13 @@ function verHistorico() {
     OBTEM_ELEMENTO('modalHistorico').classList.add('active');
 }
 
+// RENDERIZAÇÃO DO HISTÓRICO
 function renderizarListaHistorico() {
     const listaContainer = OBTEM_ELEMENTO('listaHistorico');
     if (!listaContainer) return;
 
-    // FILTRO DINÂMICO: Filtra o histórico com base no que foi digitado
     const historicoFiltrado = historicoAlteracoes.filter(log => {
-        if (!termoPesquisaHistorico) return true; // Se não houver pesquisa, traz tudo
+        if (!termoPesquisaHistorico) return true;
         
         return (
             log.tag?.toLowerCase().includes(termoPesquisaHistorico) ||
@@ -402,18 +397,15 @@ function renderizarListaHistorico() {
         );
     });
 
-    // Se o resultado do filtro for vazio
     if (historicoFiltrado.length === 0) {
         listaContainer.innerHTML = `<p style="color: #a0a5ad; font-style: italic; text-align: center; padding: 20px;">Nenhum registro encontrado para essa pesquisa.</p>`;
         atualizarControlesPaginacao('Hist', 1, 1);
         return;
     }
 
-    // Cálculos de paginação baseados agora na lista filtrada
     const totalPaginas = Math.ceil(historicoFiltrado.length / itensPorPaginaHist);
     paginaAtualHist = Math.max(1, Math.min(paginaAtualHist, totalPaginas));
 
-    // Corta os itens baseando-se no histórico filtrado
     const logsPaginados = historicoFiltrado.slice((paginaAtualHist - 1) * itensPorPaginaHist, paginaAtualHist * itensPorPaginaHist);
 
     listaContainer.innerHTML = logsPaginados.map(log => {

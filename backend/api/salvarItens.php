@@ -1,14 +1,11 @@
 <?php
-// 1. Importa o seu arquivo de conexão. 
 require_once __DIR__ . '/../Conexao/Conexao.php';
 
 header('Content-Type: application/json');
 
 try {
-    // 2. Captura a instância do PDO diretamente da sua classe estática
     $pdo = Conexao::getConexao();
     
-    // Recebe o JSON enviado pelo JavaScript
     $jsonRecebido = file_get_contents('php://input');
     $requisicao   = json_decode($jsonRecebido, true);
 
@@ -21,20 +18,18 @@ try {
     $dados = $requisicao['dados'];
 
     if ($acao === 'cadastrar') {
-        // CORREÇÃO: Alinhado estritamente com as colunas da tabela 'itens' da imagem
         $sql = "INSERT INTO itens (nome, setor, observacao, criticidade, etapa) 
                 VALUES (:nome, :setor, :observacao, :criticidade, :etapa)";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':nome'        => $dados['nome'],
-            ':setor'       => $dados['setor'], // Mapeando o input 'fabricante' para a coluna 'setor'
-            ':observacao'  => $dados['descricao'],  // Mapeando o input 'descricao' para a coluna 'observacao'
+            ':setor'       => $dados['setor'],
+            ':observacao'  => $dados['descricao'],
             ':criticidade' => $dados['criticidade'],
             ':etapa'       => $dados['etapa']
         ]);
 
-        // Pega o ID gerado automaticamente pelo MySQL (coluna tag)
         $tagGerada = $pdo->lastInsertId();
 
         echo json_encode([
@@ -44,7 +39,6 @@ try {
         ]);
 
     } else if ($acao === 'editar') {
-        // CORREÇÃO: Tabela alterada de 'equipamentos' para 'itens'. Colunas corrigidas.
         $sql = "UPDATE itens 
                 SET nome = :nome, setor = :setor, observacao = :observacao, 
                     criticidade = :criticidade, etapa = :etapa 
@@ -53,7 +47,7 @@ try {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             ':nome'        => $dados['nome'],
-            ':setor'       => $dados['setor'], // Mantendo o padrão do seu JS
+            ':setor'       => $dados['setor'],
             ':observacao'  => $dados['descricao'],
             ':criticidade' => $dados['criticidade'],
             ':etapa'       => $dados['etapa'],

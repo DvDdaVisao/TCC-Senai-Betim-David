@@ -14,8 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $cargo = Funcionario::login($email, $senha);
 
     if ($cargo) {
-        // CORRIGIDO: Força o caminho a partir da raiz da URL usando uma barra inicial "/"
-        // ou usando o caminho correto saindo da pasta 'api'
         if ($cargo === 'Gestor') {
     header("Location: /Projeto-TCC-Senai/frontend/dashboard.html");
             exit;
@@ -24,8 +22,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit; 
         }
     } else {
-        // Se o login falhar, volta para o index.html que está na raiz do projeto
-        // Sair de api/ (../) e sair de backend/ (../) -> chega na raiz onde está o index.html
         header("Location: /Projeto-TCC-Senai/index.html?erro=dados_invalidos");
         exit;
     }
